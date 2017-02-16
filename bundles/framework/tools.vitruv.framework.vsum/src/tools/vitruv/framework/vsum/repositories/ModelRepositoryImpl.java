@@ -153,6 +153,32 @@ public class ModelRepositoryImpl implements ModelRepository, CorrespondenceProvi
     }
 
     @Override
+    public void createModel(final VURI vuri, final List<EObject> rootEObjects) {
+
+        final ModelInstance modelInstance = getModel(vuri);
+        createRecordingCommandAndExecuteCommandOnTransactionalDomain(new Callable<Void>() {
+
+            @Override
+            public Void call() throws Exception {
+
+                final Resource resource = modelInstance.getResource();
+                resource.getContents().clear();
+
+                for (EObject rootEObject : rootEObjects) {
+                    TuidManager.getInstance().registerObjectUnderModification(rootEObject);
+                    resource.getContents().add(rootEObject);
+                }
+
+                ModelRepositoryImpl.this.saveModelInstance(modelInstance);
+                TuidManager.getInstance().updateTuidsOfRegisteredObjects();
+                TuidManager.getInstance().flushRegisteredObjectsUnderModification();
+                return null;
+            }
+
+        });
+    }
+
+    @Override
     public void saveAllModels() {
         saveAllChangedModels();
         saveAllChangedCorrespondenceModels();

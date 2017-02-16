@@ -1,22 +1,23 @@
 package tools.vitruv.framework.modelsynchronization.commandexecution
 
-import tools.vitruv.framework.util.datatypes.VURI
-import tools.vitruv.framework.util.datatypes.Pair
 import java.util.ArrayList
 import java.util.Collections
+import java.util.HashMap
 import java.util.List
+import java.util.Map
 import org.apache.log4j.Logger
 import org.eclipse.emf.ecore.EObject
-
-import tools.vitruv.framework.correspondence.Correspondences
 import tools.vitruv.framework.change.description.VitruviusChange
 import tools.vitruv.framework.correspondence.Correspondence
-import tools.vitruv.framework.modelsynchronization.blackboard.Blackboard
-import tools.vitruv.framework.util.command.VitruviusRecordingCommand
+import tools.vitruv.framework.correspondence.Correspondences
 import tools.vitruv.framework.metamodel.ModelRepository
-import tools.vitruv.framework.util.command.VitruviusTransformationRecordingCommand
+import tools.vitruv.framework.modelsynchronization.blackboard.Blackboard
 import tools.vitruv.framework.util.VitruviusConstants
 import tools.vitruv.framework.util.command.ChangePropagationResult
+import tools.vitruv.framework.util.command.VitruviusRecordingCommand
+import tools.vitruv.framework.util.command.VitruviusTransformationRecordingCommand
+import tools.vitruv.framework.util.datatypes.Pair
+import tools.vitruv.framework.util.datatypes.VURI
 
 class CommandExecutingImpl implements CommandExecuting {
 	static final Logger logger = Logger::getLogger(typeof(CommandExecutingImpl).getSimpleName())
@@ -78,10 +79,20 @@ class CommandExecutingImpl implements CommandExecuting {
 				blackboard.getModelProviding().deleteModel(vuriToDelete)
 			}
 			saveChangedModels(modifiedEObjects, blackboard.modelProviding)
+			
+			// Group all root objects by their model VURIs to create a new model with several root objects afterwards.
+			val Map<VURI, List<EObject>> modelsToCreate = new HashMap;
 			for (Pair<EObject, VURI> createdEObjectVURIPair : transformationResult.getRootEObjectsToSave()) {
-				blackboard.getModelProviding().
-					createModel(createdEObjectVURIPair.getSecond(),
-						createdEObjectVURIPair.getFirst())
+											
+				if( !modelsToCreate.containsKey(createdEObjectVURIPair.second) ) {
+					modelsToCreate.put(createdEObjectVURIPair.second, newArrayList(createdEObjectVURIPair.first));
+				}else{
+					modelsToCreate.get(createdEObjectVURIPair.second).add(createdEObjectVURIPair.first);
+				}	
+			}
+			
+			for (vuri : modelsToCreate.keySet) {
+				blackboard.modelProviding.createModel(vuri, modelsToCreate.get(vuri));
 			}
 		}
 	}

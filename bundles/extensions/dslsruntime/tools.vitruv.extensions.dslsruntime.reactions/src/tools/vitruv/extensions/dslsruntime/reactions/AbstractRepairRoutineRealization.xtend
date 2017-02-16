@@ -1,19 +1,19 @@
 package tools.vitruv.extensions.dslsruntime.reactions
 
-import org.eclipse.emf.ecore.EObject
 import java.io.IOException
-import tools.vitruv.extensions.dslsruntime.reactions.structure.CallHierarchyHaving
-import tools.vitruv.framework.userinteraction.UserInteracting
-import org.eclipse.emf.ecore.util.EcoreUtil
-import tools.vitruv.extensions.dslsruntime.reactions.helper.PersistenceHelper
-import tools.vitruv.framework.util.datatypes.VURI
-import tools.vitruv.extensions.dslsruntime.reactions.effects.ReactionElementStatesHandlerImpl
 import java.util.function.Function
+import org.eclipse.emf.ecore.EObject
+import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.xtend.lib.annotations.Delegate
+import tools.vitruv.extensions.dslsruntime.reactions.effects.ReactionElementStatesHandlerImpl
+import tools.vitruv.extensions.dslsruntime.reactions.helper.PersistenceHelper
 import tools.vitruv.extensions.dslsruntime.reactions.helper.ReactionsCorrespondenceHelper
-import tools.vitruv.framework.correspondence.CorrespondenceModel
-import tools.vitruv.framework.util.command.ChangePropagationResult
+import tools.vitruv.extensions.dslsruntime.reactions.structure.CallHierarchyHaving
 import tools.vitruv.extensions.dslsruntime.reactions.structure.Loggable
+import tools.vitruv.framework.correspondence.CorrespondenceModel
+import tools.vitruv.framework.userinteraction.UserInteracting
+import tools.vitruv.framework.util.command.ChangePropagationResult
+import tools.vitruv.framework.util.datatypes.VURI
 
 abstract class AbstractRepairRoutineRealization extends CallHierarchyHaving implements RepairRoutine, ReactionElementStatesHandler {
 	private extension val ReactionExecutionState executionState;
@@ -82,6 +82,16 @@ abstract class AbstractRepairRoutineRealization extends CallHierarchyHaving impl
 			}
 			val _resourceURI = PersistenceHelper.getURIFromSourceProjectFolder(alreadyPersistedObject, persistencePath, correspondenceModel);
 			EcoreUtil.remove(element);
+			
+			// Add already existing elements of the resource to the transformation result to allow multiple root elements.
+			val resource = correspondenceModel.resource.resourceSet.getResource(_resourceURI, false);
+			if( resource != null) {
+				for (resourceElement : resource.contents) {
+					transformationResult.addRootEObjectToSave(resourceElement, VURI.getInstance(_resourceURI));
+				}
+				resource.contents.clear;
+			}
+			
 			transformationResult.addRootEObjectToSave(element, VURI.getInstance(_resourceURI));
 			transformationResult.addVuriToDeleteIfNotNull(oldVURI);
 		}
