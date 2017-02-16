@@ -41,8 +41,13 @@ class ReactionElementStatesHandlerImpl implements ReactionElementStatesHandler {
 		ReactionsCorrespondenceHelper.removeCorrespondencesOfObject(correspondenceModel, element);
 		if (element.eContainer() == null) {
 			if (element.eResource() != null) {
-				logger.debug("Deleting root object: " + element);
-				transformationResult.addVuriToDeleteIfNotNull(VURI.getInstance(element.eResource()));
+				if(element.eResource.contents.size == 1) {
+					logger.debug("Deleting last root object: " + element);
+					transformationResult.addVuriToDeleteIfNotNull(VURI.getInstance(element.eResource()));					
+				}else{
+					logger.debug("Deleting root object: " + element);
+					EcoreUtil.remove(element);
+				}
 			} else {
 				logger.warn("The element to delete was already removed: " + element);
 			}
